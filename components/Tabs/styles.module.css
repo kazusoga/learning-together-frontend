@@ -1,0 +1,15 @@
+.tabs {
+  width: 100%;
+  display: flex;
+}
+.tab {
+  border: 1px solid #ccc;
+  flex: 1;
+  padding: 10px;
+}
+.active {
+  background-color: #ccc;
+}
+.inactive {
+  background-color: #fff;
+}
