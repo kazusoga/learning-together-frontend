@@ -28,7 +28,20 @@ const Tabs = ({ tabs }: TabProps) => {
           );
         })}
       </div>
-      <div>{activeTab} content</div>
+      <div className={styles.learningCardList}>
+        <div className={styles.learningCard}>
+          <div className={styles.learningCard__title}>電磁気学</div>
+          <div className={styles.learningCard__description}>
+            アンペール・マクスウェルの法則の導出をやっています
+          </div>
+        </div>
+        <div className={styles.learningCard}>
+          <div className={styles.learningCard__title}>熱力学</div>
+          <div className={styles.learningCard__description}>
+            熱力学的極限について勉強中
+          </div>
+        </div>
+      </div>
     </div>
   );
 };
