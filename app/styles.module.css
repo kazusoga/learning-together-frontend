@@ -15,3 +15,17 @@
   margin-right: 10px;
   background-color: #fff;
 }
+.startLearnButton {
+  background-color: #61dafb;
+  width: 100px;
+  height: 100px;
+  border-radius: 50%;
+  font-size: 16px;
+  cursor: pointer;
+  position: fixed;
+  bottom: 30px;
+  right: 30px;
+  text-align: center;
+  line-height: 100px;
+  font-weight: bold;
+}

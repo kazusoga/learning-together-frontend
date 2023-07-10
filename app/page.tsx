@@ -9,6 +9,7 @@ export default function Home() {
         <div className={styles.userIcon}></div>
       </div>
       <Tabs tabs={["勉強中", "フォロー中", "おすすめ"]} />
+      <div className={styles.startLearnButton}>勉強開始!</div>
     </main>
   );
 }
