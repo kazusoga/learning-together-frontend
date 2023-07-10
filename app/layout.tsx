@@ -1,6 +1,7 @@
 import "./globals.css";
 import styles from "./styles.module.css";
 import { Inter } from "next/font/google";
+import Link from "next/link";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -18,7 +19,7 @@ export default function RootLayout({
     <html lang="en">
       <body className={inter.className}>
         <div className={styles.header}>
-          <div>Learning Together</div>
+          <Link href="/">Learning Together</Link>
           <div className={styles.userIcon}></div>
         </div>
         {children}
