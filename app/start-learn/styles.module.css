@@ -1,0 +1,29 @@
+.pageTitle {
+  font-weight: bold;
+  font-size: 40px;
+  margin-top: 20px;
+  margin-bottom: 20px;
+}
+.titleInput {
+  width: 80%;
+  height: 60px;
+  padding: 20px;
+  margin-bottom: 20px;
+}
+.detailTextArea {
+  width: 80%;
+  height: 200px;
+  padding: 20px;
+  margin-bottom: 20px;
+}
+.submitButton {
+  width: 50%;
+  height: 60px;
+  background-color: #61dafb;
+  border: none;
+  border-radius: 10px;
+  font-size: 20px;
+  font-weight: bold;
+  cursor: pointer;
+  margin-bottom: 20px;
+}
