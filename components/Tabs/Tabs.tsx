@@ -2,14 +2,35 @@
 
 import styles from "./styles.module.css";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import axios from "axios";
 
 type TabProps = {
   tabs: string[];
 };
 
+type Learning = {
+  id: number;
+  title: string;
+  detail: string;
+  helping: boolean;
+};
+
 const Tabs = ({ tabs }: TabProps) => {
   const [activeTab, setActiveTab] = useState(tabs[0]);
+
+  // API からデータを取得する
+  const [learnings, setLearnings] = useState([]);
+  const fetchLearnings = async () => {
+    const res = await axios.get(
+      `${process.env.NEXT_PUBLIC_API_BASE}/learnings`
+    );
+    setLearnings(res.data);
+  };
+
+  useEffect(() => {
+    fetchLearnings();
+  });
 
   return (
     <div className="w-full">
@@ -29,18 +50,16 @@ const Tabs = ({ tabs }: TabProps) => {
         })}
       </div>
       <div className={styles.learningCardList}>
-        <div className={styles.learningCard}>
-          <div className={styles.learningCard__title}>電磁気学</div>
-          <div className={styles.learningCard__description}>
-            アンペール・マクスウェルの法則の導出をやっています
-          </div>
-        </div>
-        <div className={styles.learningCard}>
-          <div className={styles.learningCard__title}>熱力学</div>
-          <div className={styles.learningCard__description}>
-            熱力学的極限について勉強中
-          </div>
-        </div>
+        {learnings.map((learning: Learning) => {
+          return (
+            <div key={learning.id} className={styles.learningCard}>
+              <div className={styles.learningCard__title}>{learning.title}</div>
+              <div className={styles.learningCard__detail}>
+                {learning.detail}
+              </div>
+            </div>
+          );
+        })}
       </div>
     </div>
   );
