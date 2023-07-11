@@ -4,6 +4,7 @@ import styles from "./styles.module.css";
 
 import { useEffect, useState } from "react";
 import axios from "axios";
+import Link from "next/link";
 
 type TabProps = {
   tabs: string[];
@@ -52,12 +53,16 @@ const Tabs = ({ tabs }: TabProps) => {
       <div className={styles.learningCardList}>
         {learnings.map((learning: Learning) => {
           return (
-            <div key={learning.id} className={styles.learningCard}>
-              <div className={styles.learningCard__title}>{learning.title}</div>
-              <div className={styles.learningCard__detail}>
-                {learning.detail}
+            <Link key={learning.id} href={`/learning-detail/${learning.id}`}>
+              <div className={styles.learningCard}>
+                <div className={styles.learningCard__title}>
+                  {learning.title}
+                </div>
+                <div className={styles.learningCard__detail}>
+                  {learning.detail}
+                </div>
               </div>
-            </div>
+            </Link>
           );
         })}
       </div>
