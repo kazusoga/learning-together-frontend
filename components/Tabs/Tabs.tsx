@@ -53,14 +53,14 @@ const Tabs = ({ tabs }: TabProps) => {
       <div className={styles.learningCardList}>
         {learnings.map((learning: Learning) => {
           return (
-            <Link key={learning.id} href={`/learning-detail/${learning.id}`}>
-              <div className={styles.learningCard}>
-                <div className={styles.learningCard__title}>
-                  {learning.title}
-                </div>
-                <div className={styles.learningCard__detail}>
-                  {learning.detail}
-                </div>
+            <Link
+              className={styles.learningCard}
+              key={learning.id}
+              href={`/learning-detail/${learning.id}`}
+            >
+              <div className={styles.learningCard__title}>{learning.title}</div>
+              <div className={styles.learningCard__detail}>
+                {learning.detail}
               </div>
             </Link>
           );
