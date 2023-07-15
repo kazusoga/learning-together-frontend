@@ -13,13 +13,3 @@
 .inactive {
   background-color: #fff;
 }
-.learningCard {
-  display: block;
-  width: 80%;
-  margin: 0 auto;
-  padding: 10px;
-  border: 1px solid #ccc;
-}
-.learningCard:not(:last-child) {
-  margin-bottom: 10px;
-}
