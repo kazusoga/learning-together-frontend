@@ -25,7 +25,7 @@ export default function startLearn() {
     if (res.status === 200) {
       alert("勉強を開始しました");
       // TOPページに遷移する
-      router.push("/");
+      router.push("/", { rerunning: true });
     } else {
       alert("エラーが発生しました");
     }
