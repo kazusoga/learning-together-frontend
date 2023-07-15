@@ -31,7 +31,7 @@ const Tabs = ({ tabs }: TabProps) => {
 
   useEffect(() => {
     fetchLearnings();
-  });
+  }, []);
 
   return (
     <div className="w-full">
