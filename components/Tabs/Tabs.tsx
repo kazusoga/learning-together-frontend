@@ -26,7 +26,7 @@ const Tabs = ({ tabs }: TabProps) => {
     const res = await axios.get(
       `${process.env.NEXT_PUBLIC_API_BASE}/learnings`
     );
-    setLearnings(res.data);
+    setLearnings(res.data.learnings);
   };
 
   useEffect(() => {
