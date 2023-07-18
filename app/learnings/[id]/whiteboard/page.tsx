@@ -4,7 +4,7 @@ import { useEffect } from "react";
 import styles from "./styles.module.css";
 
 export default function WhiteBoard() {
-  useEffect(() => {
+  const intializeCanvas = () => {
     // キャンバスのサイズを設定する
     const canvas = document.getElementById("whiteboard") as HTMLCanvasElement;
     canvas.width = 500;
@@ -67,6 +67,10 @@ export default function WhiteBoard() {
     canvas.addEventListener("mousemove", mouseMove);
     canvas.addEventListener("mouseup", mouseUp);
     canvas.addEventListener("mouseout", mouseOut);
+  };
+
+  useEffect(() => {
+    intializeCanvas();
   }, []);
 
   return (
