@@ -23,7 +23,7 @@ const LearningCardList = async () => {
           <Link
             className={styles.learningCard}
             key={learning.id}
-            href={`/learning-detail/${learning.id}`}
+            href={`/learnings/${learning.id}`}
           >
             <div className={styles.learningCard__title}>{learning.title}</div>
             <div className={styles.learningCard__detail}>{learning.detail}</div>

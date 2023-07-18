@@ -1,5 +1,6 @@
 import axios from "axios";
 import styles from "./styles.module.css";
+import Link from "next/link";
 
 export default async function LearningDetail({
   params,
@@ -16,6 +17,9 @@ export default async function LearningDetail({
     <div className={styles.learningDetail}>
       <h1 className={styles.learningDetailTitle}>{learning.title}</h1>
       <div className={styles.learningDetailContent}>{learning.detail}</div>
+      <Link href={`/learnings/${params.id}/whiteboard`}>
+        ホワイトボードを開く
+      </Link>
     </div>
   );
 }
