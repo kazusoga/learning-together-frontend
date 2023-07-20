@@ -35,30 +35,6 @@ export default function WhiteBoard(request: Request) {
     let x: number;
     let y: number;
 
-    // 通信相手に送信する
-    // let channel: RTCDataChannel;
-    // connection.ondatachannel = (event) => {
-    //   console.log("チャンネルy！！！ここは？？？？？s");
-    //   channel = event.channel;
-
-    //   channel.onmessage = (event) => {
-    //     console.log(event.data);
-    //     // 描画する
-    //     const data = JSON.parse(event.data);
-    //     ctx.beginPath();
-    //     ctx.moveTo(data.x, data.y);
-
-    //     ctx.lineTo(data.x2, data.y2);
-    //     ctx.stroke();
-    //   };
-    // };
-
-    console.log("connection.ondatachannel", connection.ondatachannel);
-
-    // connection.createDataChannel("channel");
-
-    // console.log(channel);
-
     // マウスが押されているかどうか
     let isDown = false;
 
@@ -88,9 +64,7 @@ export default function WhiteBoard(request: Request) {
       ctx.stroke();
 
       // 通信相手に送信する
-      console.log("channel は定義されてますか？？", channel);
       if (channel) {
-        console.log("遅れえええええええ");
         channel.send(JSON.stringify({ x, y, x2, y2 }));
       }
 
@@ -137,26 +111,19 @@ export default function WhiteBoard(request: Request) {
 
     // Firestoreのcallsコレクションにドキュメントを新規追加
     const db = firebase.firestore();
-    // id の名前でドキュメントがなければ新規に作成される
-    // const callDoc = db.collection("whiteboard").doc(request.params.id);
-    // const offerCandidates = callDoc.collection("offerCandidates");
-    // const answerCandidates = callDoc.collection("answerCandidates");
 
     const offer = async () => {
       const callDoc = db.collection("whiteboard").doc(request.params.id);
       const offerCandidates = callDoc.collection("offerCandidates");
       const answerCandidates = callDoc.collection("answerCandidates");
 
-      console.log("inner offerCandidates", offerCandidates);
       connection.onicecandidate = (event) => {
-        console.log("発火してますか＿？？", event);
         // offerCandidatesc というコレクションに自動IDでドキュメントを追加し、その中にevent.candidateを保存する
         event.candidate && offerCandidates.add(event.candidate.toJSON());
       };
 
       // ローカルのSDPを生成する
       const offerDescription = await connection.createOffer();
-      console.log("offerDescriptionは", offerDescription);
       await connection.setLocalDescription(offerDescription);
 
       // FirestoreにローカルのSDPを保存する
@@ -168,7 +135,6 @@ export default function WhiteBoard(request: Request) {
 
       // FirestoreからリモートのSDPを取得する
       callDoc.onSnapshot((snapshot) => {
-        console.log("snapshot は発火してますか？answer");
         const data = snapshot.data();
         if (!connection.currentRemoteDescription && data?.answer) {
           const answerDescription = new RTCSessionDescription(data.answer);
@@ -179,9 +145,7 @@ export default function WhiteBoard(request: Request) {
       // FirestoreからリモートのICE candidateを取得して登録する
       answerCandidates.onSnapshot((snapshot) => {
         // QuerySnapshot
-        console.log("snapshot は発火してますか？answercandidatesの変更を検知");
         snapshot.docChanges().forEach((change) => {
-          console.log("さらにanswerの変更を検知");
           if (change.type === "added") {
             // 通信経路の候補を登録する
             const candidate = new RTCIceCandidate(change.doc.data());
@@ -197,15 +161,12 @@ export default function WhiteBoard(request: Request) {
       const answerCandidates = callDoc.collection("answerCandidates");
 
       connection.onicecandidate = (event) => {
-        console.log("あれ？answerCandidatesに追加してますか_");
         // answerCandidates というコレクションに自動IDでドキュメントを追加し、その中にevent.candidateを保存する
         event.candidate && answerCandidates.add(event.candidate.toJSON());
       };
 
       // FirestoreからリモートのSDPを取得する
-      console.log("callDoc", callDoc);
       const callDataSnapshot = await callDoc.get();
-      console.log("callDataSnapshot data", callDataSnapshot.data());
       const offerDescription = new RTCSessionDescription(
         callDataSnapshot.data().offer
       );
@@ -217,10 +178,8 @@ export default function WhiteBoard(request: Request) {
 
       // チャンネルを監視する
       connection.ondatachannel = (event) => {
-        console.log("チャンネルy！！！ここは？？？？？s");
         channel = event.channel;
         channel.onmessage = (event) => {
-          console.log(event.data);
           // 描画する
           const data = JSON.parse(event.data);
           ctx.beginPath();
@@ -238,26 +197,10 @@ export default function WhiteBoard(request: Request) {
       };
       await callDoc.update({ answer });
 
-      // const offerget = await offerCandidates.get();
-      // console.log(
-      //   "offerCandidatesは！！！",
-      //   offerget.docChanges()[0].doc.data()
-      // );
-
-      // connection.addIceCandidate(
-      //   new RTCIceCandidate(offerget.docChanges()[0].doc.data())
-      // );
-
       offerCandidates.onSnapshot((snapshot) => {
         // 最初の一回は無条件に実行される。その後は、offerCandidates に変更があった場合に実行される
-        console.log("snapshot は発火してますか？offerの変更を検知");
         snapshot.docChanges().forEach((change) => {
-          console.log("さらにofferの変更を検知", change);
           if (change.type === "added") {
-            console.log(
-              "offerCandidatesに追加されたので、ICE candidateを登録する",
-              change.doc.data()
-            );
             let data = change.doc.data();
             connection.addIceCandidate(new RTCIceCandidate(data));
           }
@@ -265,19 +208,9 @@ export default function WhiteBoard(request: Request) {
       });
     };
 
-    console.log("request", request.searchParams.offer);
-
-    // const callDoc = db.collection("whiteboard").doc(request.params.id);
-    // const offerCandidates = callDoc.collection("offerCandidates");
-    // const answerCandidates = callDoc.collection("answerCandidates");
-
-    // connection.createDataChannel("channel");
-
     if (request.searchParams.offer) {
-      console.log("connection.ondatachannel", connection.ondatachannel);
       channel = connection.createDataChannel("channel");
       channel.onmessage = (event) => {
-        console.log(event.data);
         // 描画する
         const data = JSON.parse(event.data);
         ctx.beginPath();
@@ -289,22 +222,6 @@ export default function WhiteBoard(request: Request) {
       await offer();
     } else if (request.searchParams.answer) {
       await answer();
-
-      // connection.ondatachannel = (event) => {
-      //   console.log("チャンネルy！！！ここは？？？？？s");
-      //   channel = event.channel;
-
-      //   channel.onmessage = (event) => {
-      //     console.log(event.data);
-      //     // 描画する
-      //     const data = JSON.parse(event.data);
-      //     ctx.beginPath();
-      //     ctx.moveTo(data.x, data.y);
-
-      //     ctx.lineTo(data.x2, data.y2);
-      //     ctx.stroke();
-      //   };
-      // };
     }
   };
 
