@@ -17,10 +17,10 @@ export default function WhiteBoard(request: Request) {
     iceCandidatePoolSize: 10,
   };
 
-  const connection = new RTCPeerConnection(servers);
-
   let channel: RTCDataChannel;
   let ctx: CanvasRenderingContext2D;
+  let id: string;
+  let participantId: string;
 
   const intializeCanvas = () => {
     // キャンバスのサイズを設定する
@@ -64,7 +64,9 @@ export default function WhiteBoard(request: Request) {
       ctx.stroke();
 
       // 通信相手に送信する
+      console.log("channel はありますか！", channel);
       if (channel) {
+        console.log("いけえええええええ！！！");
         channel.send(JSON.stringify({ x, y, x2, y2 }));
       }
 
@@ -92,7 +94,7 @@ export default function WhiteBoard(request: Request) {
     canvas.addEventListener("mouseout", mouseOut);
   };
 
-  const createRoom = async () => {
+  const init = async () => {
     const firebaseConfig = {
       apiKey: process.env.NEXT_PUBLIC_VUE_APP_API_KEY,
       authDomain: process.env.NEXT_PUBLIC_VUE_APP_AUTH_DOMAIN,
@@ -109,17 +111,30 @@ export default function WhiteBoard(request: Request) {
       firebase.initializeApp(firebaseConfig);
     }
 
-    // Firestoreのcallsコレクションにドキュメントを新規追加
-    const db = firebase.firestore();
+    // Firestore の whiteboard コレクションにドキュメントを新規追加
+    let db = firebase.firestore();
 
-    const offer = async () => {
-      const callDoc = db.collection("whiteboard").doc(request.params.id);
-      const offerCandidates = callDoc.collection("offerCandidates");
-      const answerCandidates = callDoc.collection("answerCandidates");
+    const offer = async (
+      connection: RTCPeerConnection,
+      connectionDoc: firebase.firestore.DocumentReference
+    ) => {
+      const offerCandidates = connectionDoc.collection("offerCandidates");
+      const answerCandidates = connectionDoc.collection("answerCandidates");
 
       connection.onicecandidate = (event) => {
-        // offerCandidatesc というコレクションに自動IDでドキュメントを追加し、その中にevent.candidateを保存する
         event.candidate && offerCandidates.add(event.candidate.toJSON());
+      };
+
+      // チャンネルを作成する
+      channel = connection.createDataChannel("channel");
+      channel.onmessage = (event) => {
+        // 描画する
+        const data = JSON.parse(event.data);
+        ctx.beginPath();
+        ctx.moveTo(data.x, data.y);
+
+        ctx.lineTo(data.x2, data.y2);
+        ctx.stroke();
       };
 
       // ローカルのSDPを生成する
@@ -131,10 +146,10 @@ export default function WhiteBoard(request: Request) {
         sdp: offerDescription.sdp,
         type: offerDescription.type,
       };
-      await callDoc.set({ offer });
+      await connectionDoc.set({ offer });
 
       // FirestoreからリモートのSDPを取得する
-      callDoc.onSnapshot((snapshot) => {
+      connectionDoc.onSnapshot((snapshot) => {
         const data = snapshot.data();
         if (!connection.currentRemoteDescription && data?.answer) {
           const answerDescription = new RTCSessionDescription(data.answer);
@@ -155,10 +170,12 @@ export default function WhiteBoard(request: Request) {
       });
     };
 
-    const answer = async () => {
-      const callDoc = db.collection("whiteboard").doc(request.params.id);
-      const offerCandidates = callDoc.collection("offerCandidates");
-      const answerCandidates = callDoc.collection("answerCandidates");
+    const answer = async (
+      connection: RTCPeerConnection,
+      connectionDoc: firebase.firestore.DocumentReference
+    ) => {
+      const offerCandidates = connectionDoc.collection("offerCandidates");
+      const answerCandidates = connectionDoc.collection("answerCandidates");
 
       connection.onicecandidate = (event) => {
         // answerCandidates というコレクションに自動IDでドキュメントを追加し、その中にevent.candidateを保存する
@@ -166,18 +183,20 @@ export default function WhiteBoard(request: Request) {
       };
 
       // FirestoreからリモートのSDPを取得する
-      const callDataSnapshot = await callDoc.get();
+      const connectionDataSnapshot = await connectionDoc.get();
       const offerDescription = new RTCSessionDescription(
-        callDataSnapshot.data().offer
+        connectionDataSnapshot.data().offer
       );
       connection.setRemoteDescription(offerDescription);
 
       // ローカルのSDPを生成する
       const answerDescription = await connection.createAnswer();
       await connection.setLocalDescription(answerDescription);
+      console.log("answerDescription", answerDescription);
 
       // チャンネルを監視する
       connection.ondatachannel = (event) => {
+        console.log("answer の ondatachannel が実行されたよ！");
         channel = event.channel;
         channel.onmessage = (event) => {
           // 描画する
@@ -195,7 +214,7 @@ export default function WhiteBoard(request: Request) {
         sdp: answerDescription.sdp,
         type: answerDescription.type,
       };
-      await callDoc.update({ answer });
+      await connectionDoc.update({ answer });
 
       offerCandidates.onSnapshot((snapshot) => {
         // 最初の一回は無条件に実行される。その後は、offerCandidates に変更があった場合に実行される
@@ -208,29 +227,94 @@ export default function WhiteBoard(request: Request) {
       });
     };
 
-    if (request.searchParams.offer) {
-      channel = connection.createDataChannel("channel");
-      channel.onmessage = (event) => {
-        // 描画する
-        const data = JSON.parse(event.data);
-        ctx.beginPath();
-        ctx.moveTo(data.x, data.y);
+    // 新規参加者を検知した時に実行される
+    const handleNewJoiner = async () => {
+      const connection = new RTCPeerConnection(servers);
 
-        ctx.lineTo(data.x2, data.y2);
-        ctx.stroke();
-      };
-      await offer();
-    } else if (request.searchParams.answer) {
-      await answer();
-    }
+      id = Math.random().toString(36).slice(-9);
+      const connectionDoc = connections.doc(id);
+
+      await offer(connection, connectionDoc);
+    };
+
+    const callDoc = db.collection("whiteboards").doc(request.params.id);
+    const participants = callDoc.collection("participants");
+    participantId = Math.random().toString(36).slice(-9);
+    console.log("作れえええええ");
+    const participantDoc = participants.doc(participantId);
+    participantDoc.set({ test: "test" });
+
+    const connections = callDoc.collection("connections");
+    // connections コレクションの初期のドキュメント数を取得する
+    const connectionsSnapshot = await connections.get();
+    const initialConnectionsCount = connectionsSnapshot.size;
+
+    // 既存ユーザーが自分の参加を検知して
+    // connections コレクションに新規ドキュメントを追加した (自分に対する offer を作成した) ことを検知する
+    connections.onSnapshot((snapshot) => {
+      // 初回は何もしない
+      if (initialConnectionsCount === snapshot.size) return;
+
+      console.log(
+        "connections コレクションに新規ドキュメントが追加されたことを検知する",
+        snapshot
+      );
+      snapshot.docChanges().forEach(async (change) => {
+        console.log("change.type", change.type);
+        if (change.type === "added") {
+          console.log("change.doc", change.doc);
+          // 自分が作成したドキュメントだったら、何もしない
+          console.log("自分が作成したドキュメントのid", id, change.doc.id);
+          if (change.doc.id === id) return;
+
+          // ドキュメントを取得する
+          const connectionDoc = change.doc.ref;
+          // offerCandidates コレクションを監視する
+          const offerCandidates = connectionDoc.collection("offerCandidates");
+          // offerCandidates コレクションの初期のドキュメント数を取得する
+          // const offerCandidatesSnapshot = await offerCandidates.get();
+          // const initialOfferCandidatesCount = offerCandidatesSnapshot.size;
+
+          offerCandidates.onSnapshot(async (snapshot) => {
+            if (change.type === "added") {
+              console.log("offerCandidates docChanges change.doc", change);
+              let data = change.doc.data();
+              // offer が 追加されたことを検知したら、answer する
+              const connection = new RTCPeerConnection(servers);
+              await answer(connection, connectionDoc);
+            }
+          });
+        }
+      });
+    });
+
+    // participants の数を取得する
+    const participantsSnapshot = await participants.get();
+    const initialParticipantsCount = participantsSnapshot.size;
+
+    // 新規参加者を検知する
+    participants.onSnapshot((snapshot) => {
+      // 初回は何もしない
+      if (initialParticipantsCount === snapshot.size) return;
+
+      console.log("新規参加は検知しましたか？？", snapshot);
+      snapshot.docChanges().forEach(async (change) => {
+        if (change.type === "added") {
+          // 自分であれば何もしない
+          console.log("自分か？", change.doc.id, participantId);
+          if (change.doc.id === participantId) return;
+
+          console.log("handleNewJoinerが実行されるよ");
+          await handleNewJoiner();
+        }
+      });
+    });
   };
 
   useEffect(() => {
     intializeCanvas();
 
-    (async () => {
-      await createRoom();
-    })();
+    init();
   }, []);
 
   return (
