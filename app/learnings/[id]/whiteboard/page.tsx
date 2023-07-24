@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import styles from "./styles.module.css";
 import firebase from "firebase/compat/app";
 import "firebase/compat/auth";
 import "firebase/compat/firestore";
+import Canvas from "@/components/canvas";
 
 export default function WhiteBoard(request: Request) {
   const servers = {
@@ -17,8 +18,8 @@ export default function WhiteBoard(request: Request) {
     iceCandidatePoolSize: 10,
   };
 
-  let channel: RTCDataChannel;
-  let ctx: CanvasRenderingContext2D;
+  const [channel, setChannel] = useState<RTCDataChannel | undefined>(undefined);
+
   let id: string;
   let participantId: string;
 
@@ -28,78 +29,6 @@ export default function WhiteBoard(request: Request) {
   let connectionDocUnsubscribe: () => void;
   let connectionsUnsubscribe: () => void;
   let participantsUnsubscribe: () => void;
-
-  const intializeCanvas = () => {
-    // キャンバスのサイズを設定する
-    const canvas = document.getElementById("whiteboard") as HTMLCanvasElement;
-    canvas.width = 500;
-    canvas.height = 500;
-
-    // ホワイトボードにマウスで描画できるようにする
-    ctx = canvas.getContext("2d");
-
-    // マウスの座標を取得する
-    let x: number;
-    let y: number;
-
-    // マウスが押されているかどうか
-    let isDown = false;
-
-    // マウスが押された時の処理
-    const mouseDown = (e: MouseEvent) => {
-      // マウスが押されている状態にする
-      isDown = true;
-
-      // マウスの座標を取得する
-      x = e.offsetX;
-      y = e.offsetY;
-    };
-
-    // マウスが動いた時の処理
-    const mouseMove = (e: MouseEvent) => {
-      // マウスが押されていなければ処理を中断する
-      if (!isDown) return;
-
-      // マウスの座標を取得する
-      const x2 = e.offsetX;
-      const y2 = e.offsetY;
-
-      // 線を描画する
-      ctx.beginPath();
-      ctx.moveTo(x, y);
-      ctx.lineTo(x2, y2);
-      ctx.stroke();
-
-      // 通信相手に送信する
-      console.log("channel はありますか！", channel);
-      if (channel) {
-        console.log("いけえええええええ！！！");
-        channel.send(JSON.stringify({ x, y, x2, y2 }));
-      }
-
-      // マウスの座標を更新する
-      x = x2;
-      y = y2;
-    };
-
-    // マウスが離れた時の処理
-    const mouseUp = () => {
-      // マウスが押されていない状態にする
-      isDown = false;
-    };
-
-    // マウスがキャンバスから離れた時の処理
-    const mouseOut = () => {
-      // マウスが押されていない状態にする
-      isDown = false;
-    };
-
-    // イベントを登録する
-    canvas.addEventListener("mousedown", mouseDown);
-    canvas.addEventListener("mousemove", mouseMove);
-    canvas.addEventListener("mouseup", mouseUp);
-    canvas.addEventListener("mouseout", mouseOut);
-  };
 
   const firebaseConfig = {
     apiKey: process.env.NEXT_PUBLIC_VUE_APP_API_KEY,
@@ -133,9 +62,15 @@ export default function WhiteBoard(request: Request) {
       };
 
       // チャンネルを作成する
-      channel = connection.createDataChannel("channel");
-      channel.onmessage = (event) => {
+      let dataChannel = connection.createDataChannel("channel");
+      dataChannel.onmessage = (event) => {
         // 描画する
+
+        const canvas = document.getElementById(
+          "whiteboard"
+        ) as HTMLCanvasElement;
+        const ctx = canvas.getContext("2d");
+
         const data = JSON.parse(event.data);
         ctx.beginPath();
         ctx.moveTo(data.x, data.y);
@@ -143,6 +78,8 @@ export default function WhiteBoard(request: Request) {
         ctx.lineTo(data.x2, data.y2);
         ctx.stroke();
       };
+
+      setChannel(dataChannel);
 
       // ローカルのSDPを生成する
       const offerDescription = await connection.createOffer();
@@ -205,16 +142,24 @@ export default function WhiteBoard(request: Request) {
       // チャンネルを監視する
       connection.ondatachannel = (event) => {
         console.log("answer の ondatachannel が実行されたよ！");
-        channel = event.channel;
-        channel.onmessage = (event) => {
+        event.channel.onmessage = (event) => {
           // 描画する
           const data = JSON.parse(event.data);
+
+          // Canvas コンポーネント内の ctx を取得する
+          const canvas = document.getElementById(
+            "whiteboard"
+          ) as HTMLCanvasElement;
+          const ctx = canvas.getContext("2d");
+
           ctx.beginPath();
           ctx.moveTo(data.x, data.y);
 
           ctx.lineTo(data.x2, data.y2);
           ctx.stroke();
         };
+
+        setChannel(event.channel);
       };
 
       // FirestoreにローカルのSDPを保存する
@@ -368,8 +313,6 @@ export default function WhiteBoard(request: Request) {
   };
 
   useEffect(() => {
-    intializeCanvas();
-
     init();
 
     // ページから離れる時に実行される
@@ -391,7 +334,7 @@ export default function WhiteBoard(request: Request) {
   return (
     <div>
       <h1>WhiteBoard</h1>
-      <canvas id="whiteboard"></canvas>
+      <Canvas channel={channel} />
     </div>
   );
 }
