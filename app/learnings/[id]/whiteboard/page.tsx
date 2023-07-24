@@ -22,6 +22,13 @@ export default function WhiteBoard(request: Request) {
   let id: string;
   let participantId: string;
 
+  let offerCandidatesUnsubscribe1: () => void;
+  let offerCandidatesUnsubscribe2: () => void;
+  let answerCandidatesUnsubscribe: () => void;
+  let connectionDocUnsubscribe: () => void;
+  let connectionsUnsubscribe: () => void;
+  let participantsUnsubscribe: () => void;
+
   const intializeCanvas = () => {
     // キャンバスのサイズを設定する
     const canvas = document.getElementById("whiteboard") as HTMLCanvasElement;
@@ -94,26 +101,26 @@ export default function WhiteBoard(request: Request) {
     canvas.addEventListener("mouseout", mouseOut);
   };
 
+  const firebaseConfig = {
+    apiKey: process.env.NEXT_PUBLIC_VUE_APP_API_KEY,
+    authDomain: process.env.NEXT_PUBLIC_VUE_APP_AUTH_DOMAIN,
+    databaseURL: process.env.NEXT_PUBLIC_VUE_APP_DATABASE_URL,
+    projectId: process.env.NEXT_PUBLIC_VUE_APP_PROJECT_ID,
+    storageBucket: process.env.NEXT_PUBLIC_VUE_APP_STORAGE_BUCKET,
+    messagingSenderId: process.env.NEXT_PUBLIC_VUE_APP_MESSAGING_SENDER_ID,
+    appId: process.env.NEXT_PUBLIC_VUE_APP_ID,
+    measurementId: process.env.NEXT_PUBLIC_VUE_APP_MEASUREMENT_ID,
+  };
+
+  // Initialize Firebase
+  if (!firebase.apps.length) {
+    firebase.initializeApp(firebaseConfig);
+  }
+
+  // Firestore の whiteboard コレクションにドキュメントを新規追加
+  let db = firebase.firestore();
+
   const init = async () => {
-    const firebaseConfig = {
-      apiKey: process.env.NEXT_PUBLIC_VUE_APP_API_KEY,
-      authDomain: process.env.NEXT_PUBLIC_VUE_APP_AUTH_DOMAIN,
-      databaseURL: process.env.NEXT_PUBLIC_VUE_APP_DATABASE_URL,
-      projectId: process.env.NEXT_PUBLIC_VUE_APP_PROJECT_ID,
-      storageBucket: process.env.NEXT_PUBLIC_VUE_APP_STORAGE_BUCKET,
-      messagingSenderId: process.env.NEXT_PUBLIC_VUE_APP_MESSAGING_SENDER_ID,
-      appId: process.env.NEXT_PUBLIC_VUE_APP_ID,
-      measurementId: process.env.NEXT_PUBLIC_VUE_APP_MEASUREMENT_ID,
-    };
-
-    // Initialize Firebase
-    if (!firebase.apps.length) {
-      firebase.initializeApp(firebaseConfig);
-    }
-
-    // Firestore の whiteboard コレクションにドキュメントを新規追加
-    let db = firebase.firestore();
-
     const offer = async (
       connection: RTCPeerConnection,
       connectionDoc: firebase.firestore.DocumentReference
@@ -147,9 +154,10 @@ export default function WhiteBoard(request: Request) {
         type: offerDescription.type,
       };
       await connectionDoc.set({ offer });
+      await connectionDoc.update({ offer_participant: participantId });
 
       // FirestoreからリモートのSDPを取得する
-      connectionDoc.onSnapshot((snapshot) => {
+      connectionDocUnsubscribe = connectionDoc.onSnapshot((snapshot) => {
         const data = snapshot.data();
         if (!connection.currentRemoteDescription && data?.answer) {
           const answerDescription = new RTCSessionDescription(data.answer);
@@ -158,7 +166,7 @@ export default function WhiteBoard(request: Request) {
       });
 
       // FirestoreからリモートのICE candidateを取得して登録する
-      answerCandidates.onSnapshot((snapshot) => {
+      answerCandidatesUnsubscribe = answerCandidates.onSnapshot((snapshot) => {
         // QuerySnapshot
         snapshot.docChanges().forEach((change) => {
           if (change.type === "added") {
@@ -215,8 +223,9 @@ export default function WhiteBoard(request: Request) {
         type: answerDescription.type,
       };
       await connectionDoc.update({ answer });
+      await connectionDoc.update({ answer_participant: participantId });
 
-      offerCandidates.onSnapshot((snapshot) => {
+      offerCandidatesUnsubscribe1 = offerCandidates.onSnapshot((snapshot) => {
         // 最初の一回は無条件に実行される。その後は、offerCandidates に変更があった場合に実行される
         snapshot.docChanges().forEach((change) => {
           if (change.type === "added") {
@@ -251,7 +260,7 @@ export default function WhiteBoard(request: Request) {
 
     // 既存ユーザーが自分の参加を検知して
     // connections コレクションに新規ドキュメントを追加した (自分に対する offer を作成した) ことを検知する
-    connections.onSnapshot((snapshot) => {
+    connectionsUnsubscribe = connections.onSnapshot((snapshot) => {
       // 初回は何もしない
       if (initialConnectionsCount === snapshot.size) return;
 
@@ -275,15 +284,20 @@ export default function WhiteBoard(request: Request) {
           // const offerCandidatesSnapshot = await offerCandidates.get();
           // const initialOfferCandidatesCount = offerCandidatesSnapshot.size;
 
-          offerCandidates.onSnapshot(async (snapshot) => {
-            if (change.type === "added") {
-              console.log("offerCandidates docChanges change.doc", change);
-              let data = change.doc.data();
-              // offer が 追加されたことを検知したら、answer する
-              const connection = new RTCPeerConnection(servers);
-              await answer(connection, connectionDoc);
+          offerCandidatesUnsubscribe2 = offerCandidates.onSnapshot(
+            async (snapshot) => {
+              // 追加された offerCandidates を検知する
+              snapshot.docChanges().forEach(async (change2) => {
+                if (change2.type === "added") {
+                  console.log("offerCandidates docChanges change.doc", change2);
+                  let data = change2.doc.data();
+                  // offer が 追加されたことを検知したら、answer する
+                  const connection = new RTCPeerConnection(servers);
+                  await answer(connection, connectionDoc);
+                }
+              });
             }
-          });
+          );
         }
       });
     });
@@ -293,7 +307,7 @@ export default function WhiteBoard(request: Request) {
     const initialParticipantsCount = participantsSnapshot.size;
 
     // 新規参加者を検知する
-    participants.onSnapshot((snapshot) => {
+    participantsUnsubscribe = participants.onSnapshot((snapshot) => {
       // 初回は何もしない
       if (initialParticipantsCount === snapshot.size) return;
 
@@ -311,10 +325,67 @@ export default function WhiteBoard(request: Request) {
     });
   };
 
+  const deleteData = () => {
+    console.log("データを削除するぜ！！！");
+    const db = firebase.firestore();
+    const callDoc = db.collection("whiteboards").doc("5");
+    const connections = callDoc.collection("connections");
+
+    connections.get().then((snapshot) => {
+      snapshot.forEach((doc) => {
+        const data = doc.data();
+        if (
+          data.answer_participant === participantId ||
+          data.offer_participant === participantId
+        ) {
+          // 全てのコレクションを削除する
+
+          // offerCandidates コレクションを削除する
+          const offerCandidates = doc.ref.collection("offerCandidates");
+          offerCandidates.get().then((snapshot) => {
+            snapshot.forEach((doc) => {
+              doc.ref.delete();
+            });
+          });
+
+          // answerCandidates コレクションを削除する
+          const answerCandidates = doc.ref.collection("answerCandidates");
+          answerCandidates.get().then((snapshot) => {
+            snapshot.forEach((doc) => {
+              doc.ref.delete();
+            });
+          });
+
+          // connections コレクション内のドキュメントを削除する
+          doc.ref.delete();
+        }
+      });
+    });
+
+    // participants コレクション内の自分のドキュメントを削除する
+    const participants = callDoc.collection("participants");
+    participants.doc(participantId).delete();
+  };
+
   useEffect(() => {
     intializeCanvas();
 
     init();
+
+    // ページから離れる時に実行される
+    return () => {
+      // deleteData();
+      // onSnapshot を unsubscribe する
+      console.log("onSnapshot を unsubscribe する");
+      offerCandidatesUnsubscribe1 && offerCandidatesUnsubscribe1();
+      offerCandidatesUnsubscribe2 && offerCandidatesUnsubscribe2();
+      answerCandidatesUnsubscribe && answerCandidatesUnsubscribe();
+      connectionDocUnsubscribe && connectionDocUnsubscribe();
+      connectionsUnsubscribe && connectionsUnsubscribe();
+      participantsUnsubscribe && participantsUnsubscribe();
+
+      deleteData();
+    };
   }, []);
 
   return (
