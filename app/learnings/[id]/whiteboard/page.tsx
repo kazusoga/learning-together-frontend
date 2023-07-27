@@ -347,6 +347,10 @@ export default function WhiteBoard(request: Request) {
       connectionsUnsubscribe && connectionsUnsubscribe();
       participantsUnsubscribe && participantsUnsubscribe();
 
+      // ondatachannel を unsubscribe する
+      console.log("ondatachannel を unsubscribe する");
+      channel?.close();
+
       deleteData();
     };
   }, []);

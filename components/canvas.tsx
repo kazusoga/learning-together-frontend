@@ -1,14 +1,19 @@
 "use client";
 
-import { useEffect } from "react";
+import { use, useEffect } from "react";
 
 export default function Canvas({ channel }: { channel: RTCDataChannel }) {
   console.log("canvasがレンダリングされました！");
   let ctx: CanvasRenderingContext2D;
+  let canvas: HTMLCanvasElement;
+  let mouseDown: (e: MouseEvent) => void;
+  let mouseMove: (e: MouseEvent) => void;
+  let mouseUp: () => void;
+  let mouseOut: () => void;
 
   const intializeCanvas = () => {
     // キャンバスのサイズを設定する
-    const canvas = document.getElementById("whiteboard") as HTMLCanvasElement;
+    canvas = document.getElementById("whiteboard") as HTMLCanvasElement;
     canvas.width = 500;
     canvas.height = 500;
 
@@ -23,7 +28,7 @@ export default function Canvas({ channel }: { channel: RTCDataChannel }) {
     let isDown = false;
 
     // マウスが押された時の処理
-    const mouseDown = (e: MouseEvent) => {
+    mouseDown = (e: MouseEvent) => {
       // マウスが押されている状態にする
       isDown = true;
 
@@ -33,7 +38,7 @@ export default function Canvas({ channel }: { channel: RTCDataChannel }) {
     };
 
     // マウスが動いた時の処理
-    const mouseMove = (e: MouseEvent) => {
+    mouseMove = (e: MouseEvent) => {
       // マウスが押されていなければ処理を中断する
       if (!isDown) return;
 
@@ -60,13 +65,13 @@ export default function Canvas({ channel }: { channel: RTCDataChannel }) {
     };
 
     // マウスが離れた時の処理
-    const mouseUp = () => {
+    mouseUp = () => {
       // マウスが押されていない状態にする
       isDown = false;
     };
 
     // マウスがキャンバスから離れた時の処理
-    const mouseOut = () => {
+    mouseOut = () => {
       // マウスが押されていない状態にする
       isDown = false;
     };
@@ -83,6 +88,17 @@ export default function Canvas({ channel }: { channel: RTCDataChannel }) {
     // ホワイトボードを初期化する
     intializeCanvas();
   }, [channel]);
+
+  // イベントを削除する
+  useEffect(() => {
+    return () => {
+      console.log("canvas がアンマウントされました！");
+      canvas.removeEventListener("mousedown", mouseDown);
+      canvas.removeEventListener("mousemove", mouseMove);
+      canvas.removeEventListener("mouseup", mouseUp);
+      canvas.removeEventListener("mouseout", mouseOut);
+    };
+  }, []);
 
   return <canvas id="whiteboard"></canvas>;
 }
