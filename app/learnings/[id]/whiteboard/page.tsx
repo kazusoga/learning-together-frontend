@@ -12,6 +12,7 @@ export default function WhiteBoard(request: Request) {
     iceServers: [
       {
         // stun サーバーは、P2P通信にあたって、NAT の pubic ip を取得して相手に送信するために必要
+        // (firestore を通して相手に伝える)
         urls: ["stun:stun1.l.google.com:19302"],
       },
     ],
@@ -52,7 +53,8 @@ export default function WhiteBoard(request: Request) {
   const init = async () => {
     const offer = async (
       connection: RTCPeerConnection,
-      connectionDoc: firebase.firestore.DocumentReference
+      connectionDoc: firebase.firestore.DocumentReference,
+      answer_participant: string
     ) => {
       const offerCandidates = connectionDoc.collection("offerCandidates");
       const answerCandidates = connectionDoc.collection("answerCandidates");
@@ -82,8 +84,8 @@ export default function WhiteBoard(request: Request) {
       setChannel(dataChannel);
 
       // ローカルのSDPを生成する
-      const offerDescription = await connection.createOffer();
-      await connection.setLocalDescription(offerDescription);
+      const offerDescription = await connection.createOffer(); // ローカルの SDP が登録される
+      await connection.setLocalDescription(offerDescription); // ローカルの ICE Candidates が登録される
 
       // FirestoreにローカルのSDPを保存する
       const offer = {
@@ -92,13 +94,14 @@ export default function WhiteBoard(request: Request) {
       };
       await connectionDoc.set({ offer });
       await connectionDoc.update({ offer_participant: participantId });
+      await connectionDoc.update({ answer_participant }); // どの参加者に対する offer かを保存する
 
       // FirestoreからリモートのSDPを取得する
       connectionDocUnsubscribe = connectionDoc.onSnapshot((snapshot) => {
         const data = snapshot.data();
         if (!connection.currentRemoteDescription && data?.answer) {
           const answerDescription = new RTCSessionDescription(data.answer);
-          connection.setRemoteDescription(answerDescription);
+          connection.setRemoteDescription(answerDescription); // リモートの SDP が登録される
         }
       });
 
@@ -168,7 +171,6 @@ export default function WhiteBoard(request: Request) {
         type: answerDescription.type,
       };
       await connectionDoc.update({ answer });
-      await connectionDoc.update({ answer_participant: participantId });
 
       offerCandidatesUnsubscribe1 = offerCandidates.onSnapshot((snapshot) => {
         // 最初の一回は無条件に実行される。その後は、offerCandidates に変更があった場合に実行される
@@ -182,13 +184,13 @@ export default function WhiteBoard(request: Request) {
     };
 
     // 新規参加者を検知した時に実行される
-    const handleNewJoiner = async () => {
+    const handleNewJoiner = async (answer_participant: string) => {
       const connection = new RTCPeerConnection(servers);
 
       id = Math.random().toString(36).slice(-9);
       const connectionDoc = connections.doc(id);
 
-      await offer(connection, connectionDoc);
+      await offer(connection, connectionDoc, answer_participant);
     };
 
     const callDoc = db.collection("whiteboards").doc(request.params.id);
@@ -215,35 +217,51 @@ export default function WhiteBoard(request: Request) {
       );
       snapshot.docChanges().forEach(async (change) => {
         console.log("change.type", change.type);
-        if (change.type === "added") {
-          console.log("change.doc", change.doc);
-          // 自分が作成したドキュメントだったら、何もしない
-          console.log("自分が作成したドキュメントのid", id, change.doc.id);
-          if (change.doc.id === id) return;
+        console.log("change.doc", change.doc);
 
-          // ドキュメントを取得する
-          const connectionDoc = change.doc.ref;
-          // offerCandidates コレクションを監視する
-          const offerCandidates = connectionDoc.collection("offerCandidates");
-          // offerCandidates コレクションの初期のドキュメント数を取得する
-          // const offerCandidatesSnapshot = await offerCandidates.get();
-          // const initialOfferCandidatesCount = offerCandidatesSnapshot.size;
+        const data = change.doc.data();
+        console.log("data", data);
 
-          offerCandidatesUnsubscribe2 = offerCandidates.onSnapshot(
-            async (snapshot) => {
-              // 追加された offerCandidates を検知する
-              snapshot.docChanges().forEach(async (change2) => {
-                if (change2.type === "added") {
-                  console.log("offerCandidates docChanges change.doc", change2);
-                  let data = change2.doc.data();
-                  // offer が 追加されたことを検知したら、answer する
-                  const connection = new RTCPeerConnection(servers);
-                  await answer(connection, connectionDoc);
-                }
-              });
-            }
-          );
+        // 自分に対する offer でなければ何もしない
+        if (data.answer_participant !== participantId) return;
+
+        // すでに offer_participant に対して answer していたら、何もしない
+        if (data.answer) {
+          console.log("すでに answer していたので、何もしない");
+          return;
         }
+        // answerCandidates コレクションが作成されていたら、何もしない
+        const connectionDoc = change.doc.ref;
+        const answerCandidates = connectionDoc.collection("answerCandidates");
+        const answerCandidatesSnapshot = await answerCandidates.get();
+        if (answerCandidatesSnapshot.size > 0) {
+          console.log(
+            "answerCandidates コレクションが作成されていたので、何もしない"
+          );
+          return;
+        }
+
+        // ドキュメントを取得する
+        // offerCandidates コレクションを監視する
+        const offerCandidates = connectionDoc.collection("offerCandidates");
+        // offerCandidates コレクションの初期のドキュメント数を取得する
+        // const offerCandidatesSnapshot = await offerCandidates.get();
+        // const initialOfferCandidatesCount = offerCandidatesSnapshot.size;
+
+        offerCandidatesUnsubscribe2 = offerCandidates.onSnapshot(
+          async (snapshot) => {
+            // 追加された offerCandidates を検知する
+            snapshot.docChanges().forEach(async (change2) => {
+              if (change2.type === "added") {
+                console.log("offerCandidates docChanges change.doc", change2);
+                let data = change2.doc.data();
+                // offer が 追加されたことを検知したら、answer する
+                const connection = new RTCPeerConnection(servers);
+                await answer(connection, connectionDoc);
+              }
+            });
+          }
+        );
       });
     });
 
@@ -258,13 +276,15 @@ export default function WhiteBoard(request: Request) {
 
       console.log("新規参加は検知しましたか？？", snapshot);
       snapshot.docChanges().forEach(async (change) => {
+        console.log("新規参加のchangeはいくつある？", change);
         if (change.type === "added") {
           // 自分であれば何もしない
           console.log("自分か？", change.doc.id, participantId);
           if (change.doc.id === participantId) return;
+          // ここか？
 
           console.log("handleNewJoinerが実行されるよ");
-          await handleNewJoiner();
+          await handleNewJoiner(change.doc.id);
         }
       });
     });
