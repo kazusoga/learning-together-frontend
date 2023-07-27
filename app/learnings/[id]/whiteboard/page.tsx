@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useEffectEvent } from "react";
 import styles from "./styles.module.css";
 import firebase from "firebase/compat/app";
 import "firebase/compat/auth";
@@ -19,13 +19,12 @@ export default function WhiteBoard(request: Request) {
     iceCandidatePoolSize: 10,
   };
 
-  const [channel, setChannel] = useState<RTCDataChannel | undefined>(undefined);
+  const [channels, setChannels] = useState<RTCDataChannel[]>([]);
 
   let id: string;
   let participantId: string;
 
-  let offerCandidatesUnsubscribe1: () => void;
-  let offerCandidatesUnsubscribe2: () => void;
+  let offerCandidatesUnsubscribe: () => void;
   let answerCandidatesUnsubscribe: () => void;
   let connectionDocUnsubscribe: () => void;
   let connectionsUnsubscribe: () => void;
@@ -50,6 +49,8 @@ export default function WhiteBoard(request: Request) {
   // Firestore の whiteboard コレクションにドキュメントを新規追加
   let db = firebase.firestore();
 
+  let connectionDict: { [connectionId: string]: RTCPeerConnection } = {};
+
   const init = async () => {
     const offer = async (
       connection: RTCPeerConnection,
@@ -65,6 +66,7 @@ export default function WhiteBoard(request: Request) {
 
       // チャンネルを作成する
       let dataChannel = connection.createDataChannel("channel");
+      console.log("channel を作成しました！", dataChannel);
       dataChannel.onmessage = (event) => {
         // 描画する
 
@@ -81,7 +83,7 @@ export default function WhiteBoard(request: Request) {
         ctx.stroke();
       };
 
-      setChannel(dataChannel);
+      setChannels([...channels, dataChannel]);
 
       // ローカルのSDPを生成する
       const offerDescription = await connection.createOffer(); // ローカルの SDP が登録される
@@ -110,6 +112,7 @@ export default function WhiteBoard(request: Request) {
         // QuerySnapshot
         snapshot.docChanges().forEach((change) => {
           if (change.type === "added") {
+            console.log("answerCandidates を登録するよ！", change.doc.data());
             // 通信経路の候補を登録する
             const candidate = new RTCIceCandidate(change.doc.data());
             connection.addIceCandidate(candidate);
@@ -143,6 +146,10 @@ export default function WhiteBoard(request: Request) {
       console.log("answerDescription", answerDescription);
 
       // チャンネルを監視する
+      console.log(
+        "この時点ではまだセットされていないはず！connection.ondatachannel",
+        connection.ondatachannel
+      );
       connection.ondatachannel = (event) => {
         console.log("answer の ondatachannel が実行されたよ！");
         event.channel.onmessage = (event) => {
@@ -162,8 +169,72 @@ export default function WhiteBoard(request: Request) {
           ctx.stroke();
         };
 
-        setChannel(event.channel);
+        setChannels([...channels, event.channel]);
       };
+
+      // offerCandidates を取得し、offer candidates を登録する
+      offerCandidates.get().then((snapshot) => {
+        snapshot.forEach((doc) => {
+          console.log("offerCandidates をセットするよ！！", doc.data());
+          const data = doc.data();
+          const candidate = new RTCIceCandidate(data);
+          connection.addIceCandidate(candidate);
+        });
+
+        // // チャンネルを監視する
+        // console.log(
+        //   "この時点ではまだセットされていないはず！connection.ondatachannel",
+        //   connection.ondatachannel
+        // );
+        // connection.ondatachannel = (event) => {
+        //   console.log("answer の ondatachannel が実行されたよ！");
+        //   event.channel.onmessage = (event) => {
+        //     // 描画する
+        //     const data = JSON.parse(event.data);
+
+        //     // Canvas コンポーネント内の ctx を取得する
+        //     const canvas = document.getElementById(
+        //       "whiteboard"
+        //     ) as HTMLCanvasElement;
+        //     const ctx = canvas.getContext("2d");
+
+        //     ctx.beginPath();
+        //     ctx.moveTo(data.x, data.y);
+
+        //     ctx.lineTo(data.x2, data.y2);
+        //     ctx.stroke();
+        //   };
+
+        //   setChannels(channels.concat(event.channel));
+        // };
+      });
+
+      // // チャンネルを監視する
+      // console.log(
+      //   "この時点ではまだセットされていないはず！connection.ondatachannel",
+      //   connection.ondatachannel
+      // );
+      // connection.ondatachannel = (event) => {
+      //   console.log("answer の ondatachannel が実行されたよ！");
+      //   event.channel.onmessage = (event) => {
+      //     // 描画する
+      //     const data = JSON.parse(event.data);
+
+      //     // Canvas コンポーネント内の ctx を取得する
+      //     const canvas = document.getElementById(
+      //       "whiteboard"
+      //     ) as HTMLCanvasElement;
+      //     const ctx = canvas.getContext("2d");
+
+      //     ctx.beginPath();
+      //     ctx.moveTo(data.x, data.y);
+
+      //     ctx.lineTo(data.x2, data.y2);
+      //     ctx.stroke();
+      //   };
+
+      //   setChannels(channels.concat(event.channel));
+      // };
 
       // FirestoreにローカルのSDPを保存する
       const answer = {
@@ -171,16 +242,6 @@ export default function WhiteBoard(request: Request) {
         type: answerDescription.type,
       };
       await connectionDoc.update({ answer });
-
-      offerCandidatesUnsubscribe1 = offerCandidates.onSnapshot((snapshot) => {
-        // 最初の一回は無条件に実行される。その後は、offerCandidates に変更があった場合に実行される
-        snapshot.docChanges().forEach((change) => {
-          if (change.type === "added") {
-            let data = change.doc.data();
-            connection.addIceCandidate(new RTCIceCandidate(data));
-          }
-        });
-      });
     };
 
     // 新規参加者を検知した時に実行される
@@ -189,6 +250,8 @@ export default function WhiteBoard(request: Request) {
 
       id = Math.random().toString(36).slice(-9);
       const connectionDoc = connections.doc(id);
+
+      connectionDict[id] = connection;
 
       await offer(connection, connectionDoc, answer_participant);
     };
@@ -243,25 +306,13 @@ export default function WhiteBoard(request: Request) {
 
         // ドキュメントを取得する
         // offerCandidates コレクションを監視する
-        const offerCandidates = connectionDoc.collection("offerCandidates");
         // offerCandidates コレクションの初期のドキュメント数を取得する
         // const offerCandidatesSnapshot = await offerCandidates.get();
         // const initialOfferCandidatesCount = offerCandidatesSnapshot.size;
+        const connection = new RTCPeerConnection(servers);
+        connectionDict[change.doc.id] = connection;
 
-        offerCandidatesUnsubscribe2 = offerCandidates.onSnapshot(
-          async (snapshot) => {
-            // 追加された offerCandidates を検知する
-            snapshot.docChanges().forEach(async (change2) => {
-              if (change2.type === "added") {
-                console.log("offerCandidates docChanges change.doc", change2);
-                let data = change2.doc.data();
-                // offer が 追加されたことを検知したら、answer する
-                const connection = new RTCPeerConnection(servers);
-                await answer(connection, connectionDoc);
-              }
-            });
-          }
-        );
+        await answer(connection, connectionDoc);
       });
     });
 
@@ -304,6 +355,7 @@ export default function WhiteBoard(request: Request) {
           data.offer_participant === participantId
         ) {
           // 全てのコレクションを削除する
+          connectionDict[doc.ref.id].close();
 
           // offerCandidates コレクションを削除する
           const offerCandidates = doc.ref.collection("offerCandidates");
@@ -333,32 +385,71 @@ export default function WhiteBoard(request: Request) {
   };
 
   useEffect(() => {
+    // レンダリングされるたびに実行される
     init();
 
-    // ページから離れる時に実行される
+    // DOM が 削除された後に実行される
     return () => {
       // deleteData();
       // onSnapshot を unsubscribe する
-      console.log("onSnapshot を unsubscribe する");
-      offerCandidatesUnsubscribe1 && offerCandidatesUnsubscribe1();
-      offerCandidatesUnsubscribe2 && offerCandidatesUnsubscribe2();
+      console.log(
+        "onSnapshot を unsubscribe する",
+        offerCandidatesUnsubscribe,
+        answerCandidatesUnsubscribe,
+        connectionDocUnsubscribe,
+        connectionsUnsubscribe,
+        participantsUnsubscribe
+      );
+      offerCandidatesUnsubscribe && offerCandidatesUnsubscribe();
       answerCandidatesUnsubscribe && answerCandidatesUnsubscribe();
       connectionDocUnsubscribe && connectionDocUnsubscribe();
       connectionsUnsubscribe && connectionsUnsubscribe();
       participantsUnsubscribe && participantsUnsubscribe();
 
       // ondatachannel を unsubscribe する
-      console.log("ondatachannel を unsubscribe する");
-      channel?.close();
+      console.log("ondatachannel を unsubscribe する", channels);
+      channels.forEach((channel) => {
+        channel.close();
+      });
 
       deleteData();
     };
   }, []);
 
+  useEffect(() => {
+    console.log(
+      "セットアップ！ channels は",
+      channels,
+      " location.pathname は",
+      location.pathname
+    );
+
+    // location が更新されたことを検知する
+    const prevLocationPathname = location.pathname;
+
+    return () => {
+      console.log(
+        "クリーンアップ！！ prevLocationPathname は",
+        prevLocationPathname,
+        "channels は",
+        channels
+      );
+      if (prevLocationPathname !== location.pathname) {
+        console.log(
+          "location が更新されました！クリーンアップ！！ channels は",
+          channels
+        );
+        channels.forEach((channel) => {
+          channel.close();
+        });
+      }
+    };
+  }, [location, channels]);
+
   return (
     <div>
       <h1>WhiteBoard</h1>
-      <Canvas channel={channel} />
+      <Canvas channels={channels} />
     </div>
   );
 }

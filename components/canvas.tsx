@@ -2,7 +2,7 @@
 
 import { use, useEffect } from "react";
 
-export default function Canvas({ channel }: { channel: RTCDataChannel }) {
+export default function Canvas({ channels }: { channels: RTCDataChannel[] }) {
   console.log("canvasがレンダリングされました！");
   let ctx: CanvasRenderingContext2D;
   let canvas: HTMLCanvasElement;
@@ -48,15 +48,28 @@ export default function Canvas({ channel }: { channel: RTCDataChannel }) {
 
       // 線を描画する
       ctx.beginPath();
+      console.log("描画開始点", x, y);
       ctx.moveTo(x, y);
       ctx.lineTo(x2, y2);
+      console.log("描画終了点", x2, y2);
       ctx.stroke();
 
       // 通信相手に送信する
-      console.log("channel はありますか！", channel);
-      if (channel) {
-        console.log("いけえええええええ！！！");
-        channel.send(JSON.stringify({ x, y, x2, y2 }));
+      console.log("channel はありますか！", channels);
+      if (channels) {
+        channels.forEach((channel) => {
+          if (channel.readyState !== "open") {
+            console.log("channel は開いていません！");
+            // マウスの座標を更新する
+            x = x2;
+            y = y2;
+            return;
+          }
+
+          console.log("いけえええええええ！！！");
+          channel.send(JSON.stringify({ x, y, x2, y2 }));
+          console.log("送信しました！");
+        });
       }
 
       // マウスの座標を更新する
@@ -87,7 +100,7 @@ export default function Canvas({ channel }: { channel: RTCDataChannel }) {
     console.log("canvas がマウントされました！");
     // ホワイトボードを初期化する
     intializeCanvas();
-  }, [channel]);
+  }, [channels]);
 
   // イベントを削除する
   useEffect(() => {
