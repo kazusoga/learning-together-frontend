@@ -180,61 +180,7 @@ export default function WhiteBoard(request: Request) {
           const candidate = new RTCIceCandidate(data);
           connection.addIceCandidate(candidate);
         });
-
-        // // チャンネルを監視する
-        // console.log(
-        //   "この時点ではまだセットされていないはず！connection.ondatachannel",
-        //   connection.ondatachannel
-        // );
-        // connection.ondatachannel = (event) => {
-        //   console.log("answer の ondatachannel が実行されたよ！");
-        //   event.channel.onmessage = (event) => {
-        //     // 描画する
-        //     const data = JSON.parse(event.data);
-
-        //     // Canvas コンポーネント内の ctx を取得する
-        //     const canvas = document.getElementById(
-        //       "whiteboard"
-        //     ) as HTMLCanvasElement;
-        //     const ctx = canvas.getContext("2d");
-
-        //     ctx.beginPath();
-        //     ctx.moveTo(data.x, data.y);
-
-        //     ctx.lineTo(data.x2, data.y2);
-        //     ctx.stroke();
-        //   };
-
-        //   setChannels(channels.concat(event.channel));
-        // };
       });
-
-      // // チャンネルを監視する
-      // console.log(
-      //   "この時点ではまだセットされていないはず！connection.ondatachannel",
-      //   connection.ondatachannel
-      // );
-      // connection.ondatachannel = (event) => {
-      //   console.log("answer の ondatachannel が実行されたよ！");
-      //   event.channel.onmessage = (event) => {
-      //     // 描画する
-      //     const data = JSON.parse(event.data);
-
-      //     // Canvas コンポーネント内の ctx を取得する
-      //     const canvas = document.getElementById(
-      //       "whiteboard"
-      //     ) as HTMLCanvasElement;
-      //     const ctx = canvas.getContext("2d");
-
-      //     ctx.beginPath();
-      //     ctx.moveTo(data.x, data.y);
-
-      //     ctx.lineTo(data.x2, data.y2);
-      //     ctx.stroke();
-      //   };
-
-      //   setChannels(channels.concat(event.channel));
-      // };
 
       // FirestoreにローカルのSDPを保存する
       const answer = {
@@ -305,10 +251,6 @@ export default function WhiteBoard(request: Request) {
         }
 
         // ドキュメントを取得する
-        // offerCandidates コレクションを監視する
-        // offerCandidates コレクションの初期のドキュメント数を取得する
-        // const offerCandidatesSnapshot = await offerCandidates.get();
-        // const initialOfferCandidatesCount = offerCandidatesSnapshot.size;
         const connection = new RTCPeerConnection(servers);
         connectionDict[change.doc.id] = connection;
 
@@ -332,7 +274,6 @@ export default function WhiteBoard(request: Request) {
           // 自分であれば何もしない
           console.log("自分か？", change.doc.id, participantId);
           if (change.doc.id === participantId) return;
-          // ここか？
 
           console.log("handleNewJoinerが実行されるよ");
           await handleNewJoiner(change.doc.id);
@@ -390,8 +331,6 @@ export default function WhiteBoard(request: Request) {
 
     // DOM が 削除された後に実行される
     return () => {
-      // deleteData();
-      // onSnapshot を unsubscribe する
       console.log(
         "onSnapshot を unsubscribe する",
         offerCandidatesUnsubscribe,
