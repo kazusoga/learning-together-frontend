@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useEffect } from "react";
+import { useRef, useEffect, use } from "react";
 
 let canvas: HTMLCanvasElement;
 
@@ -121,6 +121,17 @@ export default function Canvas({ channels }: { channels: RTCDataChannel[] }) {
     // マウスが押されていない状態にする
     isDown = false;
   };
+
+  // // イベントハンドラを削除する
+  // useEffect(() => {
+  //   return () => {
+  //     console.log("イベントハンドラを削除します！");
+  //     canvas.removeEventListener("mousedown", mouseDown);
+  //     canvas.removeEventListener("mousemove", mouseMove);
+  //     canvas.removeEventListener("mouseup", mouseUp);
+  //     canvas.removeEventListener("mouseout", mouseOut);
+  //   };
+  // }, []);
 
   return (
     <div>
