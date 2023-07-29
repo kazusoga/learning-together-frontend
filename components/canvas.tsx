@@ -21,7 +21,8 @@ export default function Canvas({ channels }: { channels: RTCDataChannel[] }) {
 
   const intializeCanvas = () => {
     // キャンバスのサイズを設定する
-    canvas = canvasRef.current;
+    // canvas = canvasRef.current;
+    canvas = document.getElementById("whiteboard") as HTMLCanvasElement;
     canvas.width = 500;
     canvas.height = 500;
 
@@ -99,7 +100,7 @@ export default function Canvas({ channels }: { channels: RTCDataChannel[] }) {
         }
 
         console.log("いけえええええええ！！！");
-        channel.send(JSON.stringify({ x, y, x2, y2 }));
+        channel.send(JSON.stringify({ cursorType, x, y, x2, y2 }));
         console.log("送信しました！");
       });
     }
@@ -124,6 +125,7 @@ export default function Canvas({ channels }: { channels: RTCDataChannel[] }) {
   return (
     <div>
       <canvas
+        id="whiteboard"
         ref={canvasRef}
         onMouseDown={mouseDown}
         onMouseMove={mouseMove}

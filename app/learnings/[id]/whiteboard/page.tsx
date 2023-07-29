@@ -76,11 +76,15 @@ export default function WhiteBoard(request: Request) {
         const ctx = canvas.getContext("2d");
 
         const data = JSON.parse(event.data);
-        ctx.beginPath();
-        ctx.moveTo(data.x, data.y);
+        if (data.cursorType === "pencil") {
+          ctx.beginPath();
+          ctx.moveTo(data.x, data.y);
 
-        ctx.lineTo(data.x2, data.y2);
-        ctx.stroke();
+          ctx.lineTo(data.x2, data.y2);
+          ctx.stroke();
+        } else if (data.cursorType === "eraser") {
+          ctx.clearRect(data.x2, data.y2, 10, 10);
+        }
       };
 
       setChannels([...channels, dataChannel]);
@@ -162,11 +166,15 @@ export default function WhiteBoard(request: Request) {
           ) as HTMLCanvasElement;
           const ctx = canvas.getContext("2d");
 
-          ctx.beginPath();
-          ctx.moveTo(data.x, data.y);
+          if (data.cursorType === "pencil") {
+            ctx.beginPath();
+            ctx.moveTo(data.x, data.y);
 
-          ctx.lineTo(data.x2, data.y2);
-          ctx.stroke();
+            ctx.lineTo(data.x2, data.y2);
+            ctx.stroke();
+          } else if (data.cursorType === "eraser") {
+            ctx.clearRect(data.x2, data.y2, 10, 10);
+          }
         };
 
         setChannels([...channels, event.channel]);
