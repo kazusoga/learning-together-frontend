@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useEffectEvent } from "react";
+import { useEffect, useState } from "react";
 import styles from "./styles.module.css";
 import firebase from "firebase/compat/app";
 import "firebase/compat/auth";
