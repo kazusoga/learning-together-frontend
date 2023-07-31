@@ -7,6 +7,9 @@ import "firebase/compat/auth";
 import "firebase/compat/firestore";
 import Canvas from "@/components/canvas";
 
+// TODO: WebSocket に切り替えられるように、カスタムフックスで抽象化する
+// TODO: エラー出てたらコンパイル通らないようにする。Prittier ?
+
 export default function WhiteBoard(request: Request) {
   const servers = {
     iceServers: [
@@ -74,6 +77,11 @@ export default function WhiteBoard(request: Request) {
           "whiteboard"
         ) as HTMLCanvasElement;
         const ctx = canvas.getContext("2d");
+
+        if (ctx === null) {
+          alert("描画に失敗しました！！！！！");
+          return;
+        }
 
         const data = JSON.parse(event.data);
         if (data.cursorType === "pencil") {
