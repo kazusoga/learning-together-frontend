@@ -342,11 +342,26 @@ export default function WhiteBoard(request: Request) {
   };
 
   useEffect(() => {
+    // TODO: タブを閉じる時にダイアログを表示したくないので、
+    // RTCPeerConnection.oniceconnectionstatechangen を使って、切断処理を実行することを検討
+    const handleBeforeunload = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+
+      // firestore からデータを削除する
+      deleteData();
+
+      e.returnValue = "";
+    };
+
+    window.addEventListener("beforeunload", handleBeforeunload);
+
     // レンダリングされるたびに実行される
     init();
 
     // DOM が 削除された後に実行される
     return () => {
+      window.removeEventListener("beforeunload", handleBeforeunload);
+
       console.log(
         "onSnapshot を unsubscribe する",
         offerCandidatesUnsubscribe,
