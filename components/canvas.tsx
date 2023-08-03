@@ -74,6 +74,8 @@ export default function Canvas({ channels }: { channels: RTCDataChannel[] }) {
     x2 = e.nativeEvent.offsetX;
     y2 = e.nativeEvent.offsetY;
 
+    if (!ctx) return;
+
     if (cursorType === "pencil") {
       // 線を描画する
       ctx.beginPath();
