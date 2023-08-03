@@ -174,6 +174,11 @@ export default function WhiteBoard(request: Request) {
           ) as HTMLCanvasElement;
           const ctx = canvas.getContext("2d");
 
+          if (ctx === null) {
+            alert("描画に失敗しました！！！！！");
+            return;
+          }
+
           if (data.cursorType === "pencil") {
             ctx.beginPath();
             ctx.moveTo(data.x, data.y);
