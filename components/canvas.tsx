@@ -59,7 +59,7 @@ export default function Canvas({ channels }: { channels: RTCDataChannel[] }) {
           ctx.lineTo(point.endX, point.endY);
           ctx.stroke();
         } else if (point.type === "eraser") {
-          ctx.clearRect(point.x2, point.y2, 10, 10);
+          ctx.clearRect(point.endX, point.endY, 10, 10);
         }
       }
     });
