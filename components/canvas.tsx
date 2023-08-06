@@ -32,35 +32,37 @@ export default function Canvas({ channels }: { channels: RTCDataChannel[] }) {
 
     // firestore から描画情報を取得する
     const db = firebase.firestore();
-    db.collection("whiteboards")
+    const docReference = db
+      .collection("whiteboards")
       .doc("5")
       .collection("points")
       .doc("latest")
-      .onSnapshot((doc) => {
-        console.log("firestore から初期描画データを取得しました！", doc.data());
+      .get();
 
-        // 描画情報を取得する
-        const data = doc.data();
+    docReference.then((doc) => {
+      // 描画情報を取得する
+      const data = doc.data();
+      console.log("firestore から初期描画データを取得しました！", data);
 
-        // 描画情報をキャンバスに反映する
-        if (!data) {
-          return;
-        }
-        if (!ctx) {
-          return;
-        }
+      // 描画情報をキャンバスに反映する
+      if (!data) {
+        return;
+      }
+      if (!ctx) {
+        return;
+      }
 
-        for (const point of Object.values(data)) {
-          if (point.type === "pencil") {
-            ctx!.beginPath();
-            ctx.moveTo(point.startX, point.startY);
-            ctx.lineTo(point.endX, point.endY);
-            ctx.stroke();
-          } else if (point.type === "eraser") {
-            ctx.clearRect(point.x2, point.y2, 10, 10);
-          }
+      for (const point of Object.values(data)) {
+        if (point.type === "pencil") {
+          ctx.beginPath();
+          ctx.moveTo(point.startX, point.startY);
+          ctx.lineTo(point.endX, point.endY);
+          ctx.stroke();
+        } else if (point.type === "eraser") {
+          ctx.clearRect(point.x2, point.y2, 10, 10);
         }
-      });
+      }
+    });
   };
 
   useEffect(() => {
