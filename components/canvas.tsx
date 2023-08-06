@@ -52,7 +52,13 @@ export default function Canvas({ channels }: { channels: RTCDataChannel[] }) {
         return;
       }
 
-      for (const point of Object.values(data)) {
+      // data の key を昇順に並び替える
+      const keys = Object.keys(data).sort((a, b) => {
+        return Number(a) - Number(b);
+      });
+
+      for (const key of keys) {
+        const point = data[key];
         if (point.type === "pencil") {
           ctx.beginPath();
           ctx.moveTo(point.startX, point.startY);
