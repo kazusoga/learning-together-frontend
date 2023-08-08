@@ -24,7 +24,7 @@ export default async function LearningDetail({
       >
         ホワイトボードを開く
       </Link>
-      <HelpButton />
+      <HelpButton learningId={params.id} />
     </div>
   );
 }
