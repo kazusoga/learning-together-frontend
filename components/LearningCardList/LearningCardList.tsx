@@ -25,6 +25,10 @@ const LearningCardList = async () => {
             key={learning.id}
             href={`/learnings/${learning.id}`}
           >
+            <div className={styles.learningCard__helping}>
+              {learning.helping ? "ヘルプ中" : ""}
+            </div>
+
             <div className={styles.learningCard__userIconWrapper}>
               <img
                 className={styles.learningCard__userIcon}
