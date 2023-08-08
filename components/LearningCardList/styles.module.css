@@ -3,8 +3,17 @@
   width: 80%;
   margin: 0 auto;
   padding: 10px;
-  border: 1px solid #ccc;
+  background-color: white;
+  border-radius: 5px;
+  box-shadow: 5px 5px 5px grey;
 }
 .learningCard:not(:last-child) {
+  margin-bottom: 20px;
+}
+.learningCard:first-child {
+  margin-top: 20px;
+}
+.learningCard__title {
+  font-size: 1.3rem;
   margin-bottom: 10px;
 }
