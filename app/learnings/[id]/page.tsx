@@ -17,7 +17,10 @@ export default async function LearningDetail({
     <div className={styles.learningDetail}>
       <h1 className={styles.learningDetailTitle}>{learning.title}</h1>
       <div className={styles.learningDetailContent}>{learning.detail}</div>
-      <Link href={`/learnings/${params.id}/whiteboard`}>
+      <Link
+        href={`/learnings/${params.id}/whiteboard`}
+        className={styles.openWhiteboardButton}
+      >
         ホワイトボードを開く
       </Link>
     </div>
