@@ -1,6 +1,7 @@
 import axios from "axios";
 import styles from "./styles.module.css";
 import Link from "next/link";
+import HelpButton from "../../../components/HelpButton/HelpButton";
 
 export default async function LearningDetail({
   params,
@@ -23,6 +24,7 @@ export default async function LearningDetail({
       >
         ホワイトボードを開く
       </Link>
+      <HelpButton />
     </div>
   );
 }

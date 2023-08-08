@@ -1,0 +1,17 @@
+.helpButton {
+  position: absolute;
+  top: 30px;
+  right: 50px;
+  padding: 0.5rem 1rem;
+  border-radius: 5px;
+  font-size: 1.3rem;
+  cursor: pointer;
+}
+.helpOnButton {
+  background-color: yellow;
+  color: black;
+}
+.helpOffButton {
+  background-color: white;
+  color: black;
+}
