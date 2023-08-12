@@ -3,12 +3,9 @@
 import React, { useEffect } from "react";
 import axios from "axios";
 import { useRouter } from "next/navigation";
-
-import { useMyContext } from "../../context/state";
+import { useDispatchContext } from "../providers";
 
 export default function Login() {
-  console.log(useMyContext());
-
   const router = useRouter();
 
   const [email, setEmail] = React.useState("");
@@ -23,9 +20,12 @@ export default function Login() {
     setPassword(e.target.value);
   };
 
+  const dispatch = useDispatchContext();
+
   const login = async () => {
+    let res;
     try {
-      const res = await axios.post(
+      res = await axios.post(
         `${process.env.NEXT_PUBLIC_API_BASE}/login`,
         {
           email: email,
@@ -39,6 +39,8 @@ export default function Login() {
       alert("ログインに失敗しました");
       return;
     }
+
+    dispatch({ type: "login", payload: res.data.user });
 
     router.push("/");
   };

@@ -1,10 +1,14 @@
 "use client";
 import axios from "axios";
+import { useDispatchContext } from "../app/providers";
 
 export default function Logout() {
+  const dispatch = useDispatchContext();
+
   const logout = async () => {
+    let res;
     try {
-      const res = await axios.post(
+      res = await axios.post(
         `${process.env.NEXT_PUBLIC_API_BASE}/logout`,
         {},
         { withCredentials: true }
@@ -15,6 +19,8 @@ export default function Logout() {
       alert("ログアウトに失敗しました");
       return;
     }
+
+    dispatch({ type: "logout", payload: null });
   };
   return (
     <div>
