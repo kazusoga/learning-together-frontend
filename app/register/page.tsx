@@ -4,30 +4,30 @@ import React, { useEffect } from "react";
 import axios from "axios";
 import { useRouter } from "next/navigation";
 
-import { useMyContext } from "../../context/state";
-
-export default function Login() {
-  console.log(useMyContext());
-
+export default function Register() {
   const router = useRouter();
 
-  const [email, setEmail] = React.useState("");
+  const [username, setUsername] = React.useState("");
+  const handleChangeUsername = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setUsername(e.target.value);
+  };
 
+  const [email, setEmail] = React.useState("");
   const handleChangeEmail = (e: React.ChangeEvent<HTMLInputElement>) => {
     setEmail(e.target.value);
   };
 
   const [password, setPassword] = React.useState("");
-
   const handleChangePassword = (e: React.ChangeEvent<HTMLInputElement>) => {
     setPassword(e.target.value);
   };
 
-  const login = async () => {
+  const register = async () => {
     try {
       const res = await axios.post(
-        `${process.env.NEXT_PUBLIC_API_BASE}/login`,
+        `${process.env.NEXT_PUBLIC_API_BASE}/register`,
         {
+          name: username,
           email: email,
           password: password,
         },
@@ -36,7 +36,7 @@ export default function Login() {
       console.log(res);
     } catch (error) {
       console.log(error);
-      alert("ログインに失敗しました");
+      alert("登録に失敗しました");
       return;
     }
 
@@ -52,12 +52,14 @@ export default function Login() {
 
   return (
     <div>
-      <h1>Login</h1>
-      <input type="text" name="email" onChange={handleChangeEmail} />
+      <h1>Register</h1>
+      <input type="text" onChange={handleChangeUsername} />
       <br />
-      <input type="password" name="password" onChange={handleChangePassword} />
+      <input type="email" onChange={handleChangeEmail} />
       <br />
-      <button onClick={login}>ログイン</button>
+      <input type="password" onChange={handleChangePassword} />
+      <br />
+      <button onClick={register}>登録</button>
     </div>
   );
 }
