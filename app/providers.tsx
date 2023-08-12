@@ -12,7 +12,16 @@ type Action = {
   payload: loginUser;
 };
 
-const defaultState: loginUser = null;
+// リロード時に、ローカルストレージから取得
+const loginUserFromLocalStorage = (): loginUser => {
+  const loginUser = localStorage.getItem("loginUser");
+  if (loginUser) {
+    return JSON.parse(loginUser);
+  }
+  return null;
+};
+
+const defaultState: loginUser = loginUserFromLocalStorage();
 
 const Context = createContext<loginUser>(defaultState);
 
@@ -39,33 +48,13 @@ const reducer = (loginUser: loginUser, action: Action): loginUser => {
   }
 };
 
-// リロード時に、ローカルストレージから取得
-const loginUserFromLocalStorage = (): loginUser => {
-  const loginUser = localStorage.getItem("loginUser");
-  if (loginUser) {
-    return JSON.parse(loginUser);
-  }
-  return null;
-};
-
 const DispatchContext = createContext((() => 0) as React.Dispatch<any>);
 
 export const useloginUserContext = () => useContext<loginUser>(Context);
 export const useDispatchContext = () => useContext(DispatchContext);
 
-const getDefaultLoginUser = () => {
-  const loginUser = loginUserFromLocalStorage();
-  if (loginUser) {
-    return {
-      id: loginUser.id,
-      name: loginUser.name,
-    };
-  }
-  return null;
-};
-
 export const Provider = ({ children }: { children: React.ReactNode }) => {
-  const [state, dispatch] = useReducer(reducer, getDefaultLoginUser());
+  const [state, dispatch] = useReducer(reducer, defaultState);
 
   return (
     <Context.Provider value={state}>
