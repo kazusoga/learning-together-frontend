@@ -2,6 +2,7 @@ import "./globals.css";
 import styles from "./styles.module.css";
 import { Inter } from "next/font/google";
 import Link from "next/link";
+import Logout from "../components/logout";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -21,6 +22,11 @@ export default function RootLayout({
         <div className={styles.header}>
           <Link href="/">Learning Together</Link>
           <div className={styles.userIcon}></div>
+          <div>
+            <Link href="/register">新規登録</Link>
+            <Link href="/login">ログイン</Link>
+            <Logout />
+          </div>
         </div>
         {children}
       </body>
