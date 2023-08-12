@@ -3,9 +3,11 @@
 import React, { useEffect } from "react";
 import axios from "axios";
 import { useRouter } from "next/navigation";
+import { useDispatchContext } from "../providers";
 
 export default function Register() {
   const router = useRouter();
+  const dispatch = useDispatchContext();
 
   const [username, setUsername] = React.useState("");
   const handleChangeUsername = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -23,8 +25,9 @@ export default function Register() {
   };
 
   const register = async () => {
+    let res;
     try {
-      const res = await axios.post(
+      res = await axios.post(
         `${process.env.NEXT_PUBLIC_API_BASE}/register`,
         {
           name: username,
@@ -39,6 +42,8 @@ export default function Register() {
       alert("登録に失敗しました");
       return;
     }
+
+    dispatch({ type: "login", payload: res.data.user });
 
     router.push("/");
   };
