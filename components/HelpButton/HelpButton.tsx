@@ -3,7 +3,7 @@
 "use client";
 import styles from "./styles.module.css";
 import { useState } from "react";
-import axios from "axios";
+import customAxios from "@/modules/axios";
 
 const HelpButton = ({ learningId }: { learningId: string }) => {
   const [helpOn, setHelpOn] = useState(false);
@@ -13,9 +13,7 @@ const HelpButton = ({ learningId }: { learningId: string }) => {
 
   // TODO: 親コンポーネントで実行する？
   const clickHelpButton = async () => {
-    const res = await axios.put(
-      `${process.env.NEXT_PUBLIC_API_BASE}/learnings/${learningId}/help`
-    );
+    const res = await customAxios.put(`/learnings/${learningId}/help`);
 
     setHelpOn(res.data.learning.helping);
   };

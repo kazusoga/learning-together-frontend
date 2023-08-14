@@ -2,7 +2,7 @@
 
 import styles from "./styles.module.css";
 import { useState } from "react";
-import axios from "axios";
+import customAxios from "@/modules/axios";
 import { useRouter } from "next/navigation";
 
 export default function startLearn() {
@@ -11,14 +11,11 @@ export default function startLearn() {
   const router = useRouter();
 
   const submit = async () => {
-    const res = await axios.post(
-      `${process.env.NEXT_PUBLIC_API_BASE}/learnings`,
-      {
-        title: title,
-        detail: detail,
-        helping: true,
-      }
-    );
+    const res = await customAxios.post(`/learnings`, {
+      title: title,
+      detail: detail,
+      helping: true,
+    });
 
     console.log(res);
 

@@ -1,5 +1,5 @@
 "use client";
-import axios from "axios";
+import customAxios from "@/modules/axios";
 import { useDispatchContext } from "../app/providers";
 
 export default function Logout() {
@@ -8,11 +8,7 @@ export default function Logout() {
   const logout = async () => {
     let res;
     try {
-      res = await axios.post(
-        `${process.env.NEXT_PUBLIC_API_BASE}/logout`,
-        {},
-        { withCredentials: true }
-      );
+      res = await customAxios.post(`logout`);
       console.log(res);
     } catch (error) {
       console.log(error);
