@@ -13,6 +13,13 @@ customAxios.interceptors.response.use(
   (error) => {
     // レスポンスのエラー時に実行される処理
     console.error(error);
+
+    const status = error.response ? error.response.status : 500;
+    if (status === 419 || status === 401) {
+      window.location.href = "/login";
+      return;
+    }
+
     throw error;
   }
 );
