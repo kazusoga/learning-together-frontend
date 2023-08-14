@@ -1,12 +1,12 @@
 import axios from "axios";
 import styles from "./styles.module.css";
 import Link from "next/link";
-import HelpButton from "../../../components/HelpButton/HelpButton";
+import HelpButtonWrapper from "../../../components/HelpButton/HelpButtonWrapper";
 
 export default async function LearningDetail({
   params,
 }: {
-  params: { id: string };
+  params: { id: number };
 }) {
   const learning = await axios
     .get(`${process.env.NEXT_PUBLIC_API_BASE}/learnings/${params.id}`)
@@ -24,7 +24,10 @@ export default async function LearningDetail({
       >
         ホワイトボードを開く
       </Link>
-      <HelpButton learningId={params.id} />
+      <HelpButtonWrapper
+        learningId={params.id}
+        learningUserId={learning.user_id}
+      />
     </div>
   );
 }

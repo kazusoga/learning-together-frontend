@@ -5,7 +5,7 @@ import styles from "./styles.module.css";
 import { useState } from "react";
 import customAxios from "@/modules/axios";
 
-const HelpButton = ({ learningId }: { learningId: string }) => {
+const HelpButton = ({ learningId }: { learningId: number }) => {
   const [helpOn, setHelpOn] = useState(false);
 
   const className = helpOn ? styles.helpOnButton : styles.helpOffButton;
