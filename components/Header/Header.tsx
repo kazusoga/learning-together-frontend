@@ -19,8 +19,9 @@ export default function Header() {
         </>
       )}
       {!loginUser && (
-        <div>
+        <div className={styles.buttons}>
           <Link href="/register">新規登録</Link>
+          <div className={styles.divider}></div>
           <Link href="/login">ログイン</Link>
         </div>
       )}
