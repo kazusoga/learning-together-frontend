@@ -5,4 +5,16 @@ const customAxios = axios.create({
   withCredentials: true,
 });
 
+customAxios.interceptors.response.use(
+  (response) => {
+    // レスポンスの成功時に実行される処理
+    return response;
+  },
+  (error) => {
+    // レスポンスのエラー時に実行される処理
+    console.error(error);
+    throw error;
+  }
+);
+
 export default customAxios;

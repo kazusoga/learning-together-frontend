@@ -17,8 +17,6 @@ export default function startLearn() {
       helping: true,
     });
 
-    console.log(res);
-
     if (res.status === 200) {
       alert("勉強を開始しました");
       // TOPページに遷移する

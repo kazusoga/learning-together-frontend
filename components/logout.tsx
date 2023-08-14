@@ -9,9 +9,7 @@ export default function Logout() {
     let res;
     try {
       res = await customAxios.post(`logout`);
-      console.log(res);
     } catch (error) {
-      console.log(error);
       alert("ログアウトに失敗しました");
       return;
     }
